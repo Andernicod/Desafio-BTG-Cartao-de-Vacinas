@@ -78,10 +78,9 @@ Popups personalizados para feedback (sucesso, erro, confirmação)
 
 ## Como Rodar o Projeto?
 ### Backend:
-
-# Requisitos: 
-Java 17+, Maven
-Para rodar: ./mvnw spring-boot:run
+Requisitos: 
+- Java 17+, Maven
+- Para rodar: ./mvnw spring-boot:run
 
 ### Frontend:
 Basta abrir a rota http://localhost:8080/html/login.html no navegador (após garantir que o backend esteja rodando).
