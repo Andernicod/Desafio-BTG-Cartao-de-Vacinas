@@ -1,0 +1,7 @@
+com\exemplo\cartaovacina\Vacina\Vacina.class
+com\exemplo\cartaovacina\Vacina\VacinaController.class
+com\exemplo\cartaovacina\Vacina\VacinaRepo.class
+com\exemplo\cartaovacina\App.class
+com\exemplo\cartaovacina\Paciente\Paciente.class
+com\exemplo\cartaovacina\Paciente\PacienteRepo.class
+com\exemplo\cartaovacina\Paciente\PacienteController.class

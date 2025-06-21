@@ -1,0 +1,132 @@
+/* Reset básico e fonte usada */
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+    /* Usei a fonte abaixo para melhor visualização */
+    font-family: 'Segoe UI', Verdana, sans-serif;
+}
+
+body {
+    background: linear-gradient(135deg, #00c6ff, #0072ff);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    color: #333;
+}
+
+.fundo {
+    width: 100%;
+    max-width: 420px;
+    padding: 20px;
+}
+
+.caixa-principal {
+    background-color: #fff;
+    padding: 30px 25px;
+    border-radius: 15px;
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
+    transition: all 0.4s ease;
+    overflow: hidden;
+}
+
+h1 {
+    text-align: center;
+    color: #007bff;
+    font-size: 1.8rem;
+    margin-bottom: 20px;
+}
+
+h2 {
+    text-align: center;
+    color: #333;
+    margin-bottom: 15px;
+}
+
+input[type="text"],
+input[type="password"],
+input[type="submit"] {
+    width: 100%;
+    padding: 12px 15px;
+    margin: 10px 0;
+    border-radius: 8px;
+    border: 1.5px solid #ccc;
+    font-size: 1rem;
+    transition: 0.3s ease;
+}
+
+input[type="text"]:focus,
+input[type="password"]:focus {
+    border-color: #28a745;
+    box-shadow: 0 0 5px rgba(40, 167, 69, 0.5);
+    outline: none;
+}
+
+input[type="submit"] {
+    background: linear-gradient(90deg, #28a745, #218838);
+    color: white;
+    border: none;
+    cursor: pointer;
+    font-weight: bold;
+    transition: 0.3s ease;
+}
+
+input[type="submit"]:hover {
+    background: linear-gradient(90deg, #218838, #1e7e34);
+}
+
+.mensagem-erro {
+    color: #dc3545;
+    font-size: 0.9em;
+    text-align: center;
+    margin-bottom: 10px;
+    min-height: 1.2em;
+}
+
+.link-alternar {
+    color: #007bff;
+    text-align: center;
+    cursor: pointer;
+    margin-top: 10px;
+    display: block;
+    font-size: 0.95rem;
+    user-select: none;
+    transition: color 0.3s ease;
+}
+
+.link-alternar:hover {
+    color: #0056b3;
+    text-decoration: underline;
+}
+
+.escondido {
+    display: none;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.formulario {
+    animation: aparecer 0.5s ease;
+}
+
+/* Animação de transição entre os formulários */
+@keyframes aparecer {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+/* Responsividade para telas menores */
+@media (max-width: 480px) {
+    .caixa-principal {
+        padding: 20px 15px;
+    }
+
+    h1 {
+        font-size: 1.5rem;
+    }
+
+    h2 {
+        font-size: 1.2rem;
+    }
+}

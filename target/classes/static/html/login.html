@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <title>Vacinas - Login</title>
+    <meta charset="UTF-8" />
+    <link rel="stylesheet" href="/css/style_login.css" type="text/css" />
+    <link rel="icon" href="https://cdn-icons-png.flaticon.com/512/2731/2731872.png" type="image/png" />
+</head>
+<body>
+    <div class="fundo">
+        <div class="caixa-principal">
+            <h1>Carteira de Vacinação</h1>
+            <!-- Caixa do Login -->
+            <div class="formulario caixa-login">
+                <h2>Login</h2>
+                <p id="mensagem-login" class="mensagem-erro"></p>
+                <form id="formulario-login">
+                    <input type="text" id="usuario-login" placeholder="Usuário" required />
+                    <input type="password" id="senha-login" placeholder="Senha" required />
+                    <input type="submit" value="Entrar" />
+                </form>
+                <p class="link-alternar" onclick="trocarFormularios()">Ainda não tem cadastro? Clique aqui</p>
+            </div>
+            <!-- Parte do Cadastro -->
+            <div class="formulario caixa-cadastro escondido">
+                <h2>Cadastro</h2>
+                <p id="mensagem-cadastro" class="mensagem-erro"></p>
+                <form id="formulario-cadastro">
+                    <input type="text" id="usuario-cadastro" placeholder="Usuário" required />
+                    <input type="password" id="senha-cadastro" placeholder="Senha" required />
+                    <input type="submit" value="Cadastrar" />
+                </form>
+                <p class="link-alternar" onclick="trocarFormularios()">Já tem cadastro? Clique aqui</p>
+            </div>
+        </div>
+    </div>
+    <script>
+        // Alterna entre o login e o cadastro
+        function trocarFormularios() {
+            document.querySelector('.caixa-login').classList.toggle('escondido');
+            document.querySelector('.caixa-cadastro').classList.toggle('escondido');
+            document.getElementById('mensagem-login').innerText = '';
+            document.getElementById('mensagem-cadastro').innerText = '';
+        }
+        // Função que realiza o login
+        document.getElementById('formulario-login').onsubmit = function(evento) {
+            evento.preventDefault();
+            const usuario = document.getElementById('usuario-login').value.trim();
+            const senha = document.getElementById('senha-login').value.trim();
+            if (!usuario || !senha) {
+                document.getElementById('mensagem-login').innerText = "Preencha o usuário e a senha!";
+                return;
+            }
+            const requisicao = new XMLHttpRequest();
+            requisicao.open('POST', '/authenticate', true);
+            requisicao.setRequestHeader('Content-Type', 'application/json; charset=UTF-8');
+            requisicao.onload = function() {
+                if (requisicao.status === 200) {
+                    try {
+                        const resposta = JSON.parse(requisicao.responseText);
+                        localStorage.setItem('token', resposta.token);
+                        localStorage.setItem('nomeUsuario', usuario);
+                        document.getElementById('mensagem-login').innerText = "Login realizado com sucesso!";
+                        setTimeout(() => {
+                            window.location.replace("/html/vacinas.html");
+                        }, 1000);
+                    } catch {
+                        document.getElementById('mensagem-login').innerText = "Erro ao processar a resposta do servidor.";
+                    }
+                } else {
+                    const erro = JSON.parse(requisicao.responseText);
+                    document.getElementById('mensagem-login').innerText = erro.erro || "Usuário ou senha inválidos!";
+                }
+            };
+            requisicao.onerror = function() {
+                document.getElementById('mensagem-login').innerText = "Erro de conexão com o servidor.";
+            }
+            requisicao.send(JSON.stringify({ username: usuario, password: senha }));
+        };
+        // Função que realiza o cadastro
+        document.getElementById('formulario-cadastro').onsubmit = function(evento) {
+            evento.preventDefault();
+            const usuario = document.getElementById('usuario-cadastro').value.trim();
+            const senha = document.getElementById('senha-cadastro').value.trim();
+            if (!usuario || !senha) {
+                document.getElementById('mensagem-cadastro').innerText = "Preencha o usuário e a senha!";
+                return;
+            }
+            const requisicao = new XMLHttpRequest();
+            requisicao.open('POST', '/register', true);
+            requisicao.setRequestHeader('Content-Type', 'application/json; charset=UTF-8');
+            requisicao.onload = function() {
+                if (requisicao.status === 200) {
+                    alert("Cadastro realizado com sucesso!");
+                    trocarFormularios();
+                } else {
+                    document.getElementById('mensagem-cadastro').innerText = "Erro ao realizar o cadastro!";
+                }
+            };
+            requisicao.onerror = function() {
+                document.getElementById('mensagem-cadastro').innerText = "Erro de conexão com o servidor.";
+            }
+            requisicao.send(JSON.stringify({ username: usuario, password: senha }));
+        };
+    </script>
+</body>
+</html>

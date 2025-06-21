@@ -1,0 +1,730 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8" />
+    <title>Cartão de Vacinação</title>
+    <link rel="stylesheet" href="/css/style_vacinas.css"/>
+    <link rel="icon" href="https://cdn-icons-png.flaticon.com/512/2731/2731872.png" type="image/png" />
+</head>
+<body>
+    <div class="container">
+        <h1>Carteira de Vacinação</h1>
+        <section class="auth-section">
+            <button class="btn-logout" onclick="logout()">Sair</button>
+        </section>
+
+        <!-- Aqui temos a busca do paciente -->
+        <section class="paciente-busca">
+            <input type="text" id="Busca" placeholder="Buscar paciente por nome ou CPF" />
+            <button id="btnBusca">Buscar</button>
+            <button id="btnLimparPesquisa" style="margin-left:10px;">Limpar Pesquisa</button>
+            <button id="btnExcluirPaciente" class="btn-danger" style="display:none; margin-left:10px;">Excluir Paciente</button>
+        </section>
+
+        <div id="pacienteSelecionado" class="info-msg">Nenhum paciente selecionado</div>
+
+        <section class="formulario-paciente">
+            <h2>Dados do Paciente</h2>
+            <input type="text" id="pacienteNome" placeholder="Nome completo do paciente" />
+            <input type="text" id="pacienteCpf" placeholder="CPF do paciente" />
+            <button id="btnCadastrarPaciente" class="btn-primary">Cadastrar Paciente</button>
+        </section>
+
+        <section class="formulario-vacina">
+            <h2>Nova Vacina</h2>
+            <select id="nomeVacina">
+                <option value="">Selecione a vacina</option>
+                <option value="BCG">BCG</option>
+                <option value="Hepatite B">Hepatite B</option>
+                <option value="Penta">Penta</option>
+                <option value="Polio Inativada">Polio Inativada</option>
+                <option value="Polio Oral">Polio Oral</option>
+                <option value="Rotavírus">Rotavírus</option>
+                <option value="Pneumo 10">Pneumo 10</option>
+                <option value="Meningo C">Meningo C</option>
+                <option value="Febre Amarela">Febre Amarela</option>
+                <option value="Tríplice Viral">Tríplice Viral</option>
+                <option value="Tetra Viral">Tetra Viral</option>
+                <option value="DTP">DTP</option>
+                <option value="Hepatite A">Hepatite A</option>
+                <option value="Varicela">Varicela</option>
+                <option value="dT">dT</option>
+                <option value="Meningo ACWY">Meningo ACWY</option>
+                <option value="HPV">HPV</option>
+                <option value="dTpa">dTpa</option>
+                <option value="Influenza">Influenza</option>
+                <option value="Pneumo 23">Pneumo 23</option>
+            </select>
+
+            <select id="doseVacina">
+                <option value="">Selecione a dose</option>
+                <option value="1ª Dose">1ª Dose</option>
+                <option value="2ª Dose">2ª Dose</option>
+                <option value="3ª Dose">3ª Dose</option>
+                <option value="Reforço">Reforço</option>
+                <option value="Anual">Anual</option>
+            </select>
+
+            <input type="date" id="dataVacina" />
+            <button id="btnAdicionarVacina" class="btn-primary">Adicionar Vacina</button>
+        </section>
+
+        <section class="cartao-vacina">
+            <h2>Cartão de Vacinação</h2>
+            <table id="tabelaCartao">
+                <thead>
+                    <tr>
+                        <th>Dose/Vacina</th>
+                        <th>BCG</th>
+                        <th>Hepatite B</th>
+                        <th>Penta</th>
+                        <th>Polio Inativada</th>
+                        <th>Polio Oral</th>
+                        <th>Rotavírus</th>
+                        <th>Pneumo 10</th>
+                        <th>Meningo C</th>
+                        <th>Febre Amarela</th>
+                        <th>Tríplice Viral</th>
+                        <th>Tetra Viral</th>
+                        <th>DTP</th>
+                        <th>Hepatite A</th>
+                        <th>Varicela</th>
+                        <th>dT</th>
+                        <th>Meningo ACWY</th>
+                        <th>HPV</th>
+                        <th>dTpa</th>
+                        <th>Influenza</th>
+                        <th>Pneumo 23</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr><td>1ª Dose</td></tr>
+                    <tr><td>2ª Dose</td></tr>
+                    <tr><td>3ª Dose</td></tr>
+                    <tr><td>Reforço</td></tr>
+                    <tr><td>Anual</td></tr>
+                </tbody>
+            </table>
+        </section>
+
+    </div>
+    <div id="toast-container"></div>
+
+<script>
+    const baseUrl = "http://localhost:8080";
+    let pacienteSelecionado = null;
+    let vacinasPaciente = []; // armazena as vacinas carregadas no vetor para carregar depois
+
+    // Pega o token do localStorage para fins de autenticação
+    function getToken() {
+        return localStorage.getItem('token');
+    }
+
+    // Verifica se o usuário está autenticado se não retorna para o login
+    function verificarAutenticacao() {
+        if (!getToken()) {
+            mostrarPopup('Você precisa estar logado para acessar esta página.');
+            window.location.href = 'login.html';
+        }
+    }
+
+    // Se ele deslogar apaga o token e o nome do usuário
+    function logout() {
+        localStorage.removeItem('token');
+        localStorage.removeItem('userName');
+        window.location.href = 'login.html';
+    }
+
+    // Busca o paciente por nome ou CPF na API
+    async function buscarPaciente() {
+        const termo = document.getElementById("Busca").value.trim();
+        if (!termo) {
+            mostrarPopup("Digite nome ou CPF para buscar paciente.");
+            return;
+        }
+        try {
+            const res = await fetch(`${baseUrl}/api/pacientes`, {
+                headers: { "Authorization": "Bearer " + getToken() }
+            });
+            if (!res.ok) {
+                if (res.status === 401) logout();
+                else mostrarPopup("Erro ao buscar paciente.", "error");
+                return;
+            }
+            const pacientes = await res.json();
+            const filtrados = pacientes.filter(p =>
+                p.nome.toLowerCase().includes(termo.toLowerCase()) || p.cpf.includes(termo)
+            );
+            if (filtrados.length === 0) {
+                mostrarPopup("Nenhum paciente encontrado.", "info");
+                return;
+            }
+            if (filtrados.length === 1) {
+                selecionarPaciente(filtrados[0]);
+            } else {
+                let lista = filtrados.map(p => `${p.nome} (CPF: ${p.cpf})`);
+                let idx = await popupSelecao("Vários pacientes foram encontrados, escolha um abaixo:", lista);
+                if (idx === -1) {
+                    mostrarPopup("A operação foi cancelada.", "info");
+                    return;
+                }
+                selecionarPaciente(filtrados[idx]);
+            }
+        } catch {
+            mostrarPopup("Erro na comunicação com o servidor.");
+        }
+    }
+
+    // Seleciona o paciente e carrega no cartão de vacinação
+    function selecionarPaciente(paciente) {
+        pacienteSelecionado = paciente;
+        document.getElementById("pacienteSelecionado").textContent = `Paciente selecionado: ${paciente.nome} (CPF: ${paciente.cpf})`;
+        document.getElementById("pacienteNome").value = paciente.nome;
+        document.getElementById("pacienteCpf").value = paciente.cpf;
+        document.getElementById("btnExcluirPaciente").style.display = 'inline-block';
+        carregarCartaoVacina(paciente.id);
+    }
+
+    // Faz um POST ou PUT para cadastrar ou atualizar o paciente
+    async function cadastrarPaciente() {
+        const nome = document.getElementById("pacienteNome").value.trim();
+        const cpf = document.getElementById("pacienteCpf").value.trim();
+
+        if (!nome || !cpf) {
+            mostrarPopup("Preencha nome e CPF do paciente.", "error");
+            return;
+        }
+
+        try {
+            const res = await fetch(`${baseUrl}/api/pacientes`, {
+                headers: { "Authorization": "Bearer " + getToken() }
+            });
+            if (!res.ok) {
+                if (res.status === 401) logout();
+                else mostrarPopup("Erro ao validar CPF.", "error");
+                return;
+            }
+            const pacientes = await res.json();
+            const cpfExiste = pacientes.some(p => p.cpf === cpf && (!pacienteSelecionado || p.id !== pacienteSelecionado.id));
+            if (cpfExiste) {
+                mostrarPopup("Já existe um paciente com esse CPF.", "error");
+                return;
+            }
+        } catch {
+            mostrarPopup("Erro ao verificar CPF existente.", "error");
+            return;
+        }
+
+        let metodo = "POST";
+        let url = `${baseUrl}/api/pacientes`;
+        if (pacienteSelecionado && pacienteSelecionado.id) {
+            metodo = "PUT";
+            url = `${baseUrl}/api/pacientes/${pacienteSelecionado.id}`;
+        }
+
+        try {
+            let res = await fetch(url, {
+                method: metodo,
+                headers: {
+                    "Content-Type": "application/json",
+                    "Authorization": "Bearer " + getToken()
+                },
+                body: JSON.stringify({ nome, cpf })
+            });
+            if (res.status === 401) {
+                mostrarPopup('Sessão expirada, faça login novamente.');
+                logout();
+                return;
+            }
+            if (!res.ok) {
+                const err = await res.text();
+                mostrarPopup("Erro ao cadastrar paciente: " + err, "error");
+                return;
+            }
+            const paciente = await res.json();
+            selecionarPaciente(paciente);
+            mostrarPopup("Paciente cadastrado/atualizado com sucesso.");
+        } catch {
+            mostrarPopup("Erro na comunicação com o servidor.", "error");
+        }
+    }
+
+    // Se excluir o paciente, exclui as vacinas dele
+    async function excluirPaciente() {
+        if (!pacienteSelecionado) {
+            mostrarPopup("Nenhum paciente selecionado.");
+            return;
+        }
+
+        const confirmado = await new Promise((resolve) => {
+            mostrarPopup(
+                `Excluir paciente ${pacienteSelecionado.nome} e todas suas vacinas?`,
+                "confirmation",
+                true,
+                () => resolve(true),
+                () => resolve(false)
+            );
+        });
+        if (!confirmado) {
+            mostrarPopup("A Operação foi cancelada.", "info");
+            return;
+        }
+
+        try {
+            // Buscar vacinas do paciente
+            let resVacinas = await fetch(`${baseUrl}/api/vacinas?pacienteId=${pacienteSelecionado.id}`, {
+                headers: { "Authorization": "Bearer " + getToken() }
+            });
+            if (!resVacinas.ok) {
+                mostrarPopup("Erro ao buscar vacinas para a exclusão.", "error");
+                return;
+            }
+            let vacinas = await resVacinas.json();
+
+            // Excluir todas as vacinas do paciente
+            for (const vacina of vacinas) {
+                let resDel = await fetch(`${baseUrl}/api/vacinas/${vacina.id}`, {
+                    method: "DELETE",
+                    headers: { "Authorization": "Bearer " + getToken() }
+                });
+                if (!resDel.ok) {
+                    mostrarPopup(`Erro ao excluir vacina ID ${vacina.id}`);
+                    return;
+                }
+            }
+
+            // Agora excluir o paciente
+            let res = await fetch(`${baseUrl}/api/pacientes/${pacienteSelecionado.id}`, {
+                method: "DELETE",
+                headers: { "Authorization": "Bearer " + getToken() }
+            });
+            if (res.status === 401) {
+                mostrarPopup('Sessão expirada, faça login novamente.');
+                logout();
+                return;
+            }
+            if (!res.ok) {
+                mostrarPopup("Erro ao excluir paciente.", "error");
+                return;
+            }
+
+            pacienteSelecionado = null;
+            document.getElementById("pacienteSelecionado").textContent = "Nenhum paciente selecionado";
+            document.getElementById("pacienteNome").value = "";
+            document.getElementById("pacienteCpf").value = "";
+            document.getElementById("btnExcluirPaciente").style.display = 'none';
+            limparCartaoVacina();
+            mostrarPopup("Paciente e vacinas excluídos com sucesso.", "success");
+
+        } catch {
+            mostrarPopup("Erro na comunicação com o servidor.", "error");
+        }
+    }
+
+    // Adiciona uma vacina ao paciente selecionado
+    async function adicionarVacina() {
+        if (!pacienteSelecionado) {
+            mostrarPopup("Selecione um paciente antes de adicionar vacina.");
+            return;
+        }
+
+        const nome = document.getElementById("nomeVacina").value.trim();
+        const dose = document.getElementById("doseVacina").value;
+        const data = document.getElementById("dataVacina").value;
+
+        if (!nome || !dose || !data) {
+            mostrarPopup("Preencha todos os dados da vacina.");
+            return;
+        }
+
+        let vacina = {
+            nome,
+            doseAplicada: dose,
+            dataAplicacao: data,
+            paciente: { id: pacienteSelecionado.id }
+        };
+
+        try {
+            let res = await fetch(`${baseUrl}/api/vacinas`, {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "Authorization": "Bearer " + getToken()
+                },
+                body: JSON.stringify(vacina)
+            });
+            if (res.status === 401) {
+                mostrarPopup("Sessão expirada, faça login novamente.");
+                logout();
+                return;
+            }
+            if (!res.ok) {
+                const err = await res.text();
+                mostrarPopup("Erro ao adicionar vacina: " + err, "error");
+                return;
+            }
+            mostrarPopup("A vacina foi adicionada com sucesso.", "success");
+            document.getElementById("nomeVacina").value = "";
+            document.getElementById("doseVacina").value = "";
+            document.getElementById("dataVacina").value = "";
+            carregarCartaoVacina(pacienteSelecionado.id);
+        } catch {
+            mostrarPopup("Erro na comunicação com o servidor.");
+        }
+    }
+
+    // Editar vacina via popup
+    async function editarVacina(id) {
+        try {
+            let resVacina = await fetch(`${baseUrl}/api/vacinas/${id}`, {
+                headers: { "Authorization": "Bearer " + getToken() }
+            });
+            if (!resVacina.ok) {
+                mostrarPopup("Erro ao buscar dados da vacina.");
+                return;
+            }
+            let vacinaAtual = await resVacina.json();
+
+            const opcoesVacinas = Array.from(document.getElementById('nomeVacina').options)
+                .map(o => o.value)
+                .filter(v => v);
+            const opcoesDose = ["1ª Dose", "2ª Dose", "3ª Dose", "Reforço", "Anual"];
+
+            let novaVacina = { nome: vacinaAtual.nome, doseAplicada: vacinaAtual.doseAplicada, dataAplicacao: vacinaAtual.dataAplicacao };
+
+            // Escolha a nova vacina
+            let idxNome = await popupSelecao("Escolha o novo nome da vacina:", opcoesVacinas);
+            if (idxNome === -1) {
+                mostrarPopup("Operação cancelada.", "info");
+                return;
+            }
+            novaVacina.nome = opcoesVacinas[idxNome];
+
+            // Escolhe a dose
+            let idxDose = await popupSelecao("Escolha a nova dose:", opcoesDose);
+            if (idxDose === -1) {
+                mostrarPopup("Operação cancelada.", "info");
+                return;
+            }
+            novaVacina.doseAplicada = opcoesDose[idxDose];
+
+            // Escolha uma nova data por meio de calendário
+            let novaData = await new Promise((resolve) => {
+                const popupContainer = document.getElementById('toast-container');
+                const popup = document.createElement('div');
+                popup.className = 'toast selection';
+                popup.style.maxWidth = '300px';
+                popup.innerHTML = `
+                    <span>Selecione a nova data de aplicação:</span>
+                    <input type="date" id="dataInput" value="${vacinaAtual.dataAplicacao}" style="margin-top:8px; width: 90%; padding: 5px;" />
+                    <div style="margin-top:10px; display:flex; justify-content: space-between;">
+                        <button class="ok-btn">OK</button>
+                        <button class="cancel-btn">Cancelar</button>
+                    </div>
+                `;
+
+                popup.querySelector('.ok-btn').onclick = () => {
+                    const inputDate = popup.querySelector('#dataInput').value;
+                    popup.remove();
+                    resolve(inputDate);
+                };
+
+                popup.querySelector('.cancel-btn').onclick = () => {
+                    popup.remove();
+                    resolve(null);
+                };
+
+                popupContainer.appendChild(popup);
+            });
+
+            if (!novaData || isNaN(new Date(novaData).getTime())) {
+                mostrarPopup("Data inválida.", "error");
+                return;
+            }
+            novaVacina.dataAplicacao = novaData.trim();
+
+            let res = await fetch(`${baseUrl}/api/vacinas/${id}`, {
+                method: "PUT",
+                headers: {
+                    "Content-Type": "application/json",
+                    "Authorization": "Bearer " + getToken()
+                },
+                body: JSON.stringify({
+                    nome: novaVacina.nome,
+                    doseAplicada: novaVacina.doseAplicada,
+                    dataAplicacao: novaVacina.dataAplicacao,
+                    paciente: { id: pacienteSelecionado.id }
+                })
+            });
+
+            if (res.status === 401) {
+                mostrarPopup('Sessão expirada, faça login novamente.');
+                logout();
+                return;
+            }
+            if (!res.ok) {
+                mostrarPopup("Erro ao editar vacina.", "error");
+                return;
+            }
+            mostrarPopup("Vacina atualizada com sucesso.", "success");
+            carregarCartaoVacina(pacienteSelecionado?.id);
+        } catch {
+            mostrarPopup('Erro na comunicação com o servidor.');
+        }
+    }
+
+    // Deleta a vacina que foi selecionada
+    async function deletarVacina(id) {
+        if (!(await new Promise(res => mostrarPopup("Tem certeza que deseja excluir essa vacina?", "confirmation", true, () => res(true), () => res(false))))) return;
+        try {
+            let res = await fetch(`${baseUrl}/api/vacinas/${id}`, {
+                method: "DELETE",
+                headers: { "Authorization": "Bearer " + getToken() }
+            });
+            if (res.status === 401) {
+                mostrarPopup('Sessão expirada, faça login novamente.');
+                logout();
+                return;
+            }
+            if (!res.ok) {
+                mostrarPopup("Erro ao excluir vacina.", "error");
+                return;
+            }
+            mostrarPopup("Vacina excluída.", "success");
+            carregarCartaoVacina(pacienteSelecionado?.id);
+        } catch {
+            mostrarPopup('Erro na comunicação com o servidor.');
+        }
+    }
+
+    // Colunas da tabela de vacinas
+    const vacinasColunas = {
+        "bcg": 1,
+        "hepatite b": 2,
+        "penta": 3,
+        "polio inativada": 4,
+        "polio oral": 5,
+        "rotavírus": 6,
+        "pneumo 10": 7,
+        "meningo c": 8,
+        "febre amarela": 9,
+        "tríplice viral": 10,
+        "tetra viral": 11,
+        "dtp": 12,
+        "hepatite a": 13,
+        "varicela": 14,
+        "dt": 15,
+        "meningo acwy": 16,
+        "hpv": 17,
+        "dtpa": 18,
+        "influenza": 19,
+        "pneumo 23": 20
+    };
+
+    // Limpa o cartão de vacinação, removendo todas as vacinas para ele clicar no limpar pesquisa no futuro
+    function limparCartaoVacina() {
+        const tbody = document.querySelector("#tabelaCartao tbody");
+        for (let r = 0; r < tbody.rows.length; r++) {
+            // Cria células se não existirem
+            while(tbody.rows[r].cells.length < 21) {
+                tbody.rows[r].insertCell(-1);
+            }
+            for (let c = 1; c < tbody.rows[r].cells.length; c++) {
+                tbody.rows[r].cells[c].textContent = "";
+                tbody.rows[r].cells[c].removeAttribute("data-vacina-id"); // remove vacina anterior
+                tbody.rows[r].cells[c].innerHTML = ""; // limpar conteúdo e deixa vazio
+            }
+        }
+    }
+
+    // Carrega o cartão de vacinação do paciente pesquisado
+    async function carregarCartaoVacina(pacienteId) {
+        if (!pacienteId) {
+            limparCartaoVacina();
+            return;
+        }
+        try {
+            const res = await fetch(`${baseUrl}/api/vacinas?pacienteId=${pacienteId}`, {
+                headers: { "Authorization": "Bearer " + getToken() }
+            });
+            if (!res.ok) {
+                if(res.status === 401) logout();
+                else mostrarPopup("Erro ao carregar cartão de vacinação.", "error");
+                return;
+            }
+            const vacinas = await res.json();
+            limparCartaoVacina();
+            const tbody = document.querySelector("#tabelaCartao tbody");
+
+            // Armazena as vacinas do paciente para uso futuro
+            vacinasPaciente = vacinas;
+
+            vacinas.forEach(v => {
+                let nomeVacina = v.nome.toLowerCase();
+                let dose = v.doseAplicada.toLowerCase();
+                let col = -1;
+                for (let key in vacinasColunas) {
+                    if (nomeVacina.includes(key.toLowerCase())) {
+                        col = vacinasColunas[key];
+                        break;
+                    }
+                }
+                if (col === -1) return;
+
+                let linha = -1;
+                if (dose.includes("1")) linha = 0;
+                else if (dose.includes("2")) linha = 1;
+                else if (dose.includes("3")) linha = 2;
+                else if (dose.includes("reforço") || dose.includes("reforco")) linha = 3;
+                else if (dose.includes("anual")) linha = 4;
+                else linha = 3;
+
+                if (linha >= 0 && col >= 1) {
+                    // Verifica se a linha e coluna são válidas
+                    let celula = tbody.rows[linha].cells[col];
+                    celula.setAttribute("data-vacina-id", v.id);
+                    // Aqui estou convertendo a data para o formato brasileiro para mostrar a data aplicada
+                    function parseDateLocal(dateStr) {
+                        const parts = dateStr.split("-");
+                        return new Date(parts[0], parts[1] - 1, parts[2]);
+                    }
+                    const dataFormatada = parseDateLocal(v.dataAplicacao).toLocaleDateString('pt-BR', {
+                        day: '2-digit',
+                        month: '2-digit',
+                        year: 'numeric'
+                    });
+                    celula.innerHTML = `
+                        <div>${dataFormatada}</div>
+                        <button class="vacina-acao-btn" onclick="editarVacina(${v.id})">Editar</button>
+                        <button class="vacina-acao-btn delete" onclick="deletarVacina(${v.id})">Excluir</button>
+                    `;
+                }
+            });
+        } catch {
+            mostrarPopup("Erro na comunicação com o servidor.");
+        }
+    }
+
+    // Limpa a pesquisa e o cartão de vacinação e deixa os campos vazios
+    function limparPesquisa() {
+        pacienteSelecionado = null;
+        document.getElementById("Busca").value = "";
+        document.getElementById("pacienteSelecionado").textContent = "Nenhum paciente selecionado";
+        document.getElementById("pacienteNome").value = "";
+        document.getElementById("pacienteCpf").value = "";
+        document.getElementById("btnExcluirPaciente").style.display = 'none';
+        limparCartaoVacina();
+    }
+
+    // Aqui há alguns eventos para quando botões forem acionados
+    document.getElementById("btnBusca").addEventListener("click", buscarPaciente);
+    document.getElementById("btnCadastrarPaciente").addEventListener("click", cadastrarPaciente);
+    document.getElementById("btnAdicionarVacina").addEventListener("click", adicionarVacina);
+    document.getElementById("btnExcluirPaciente").addEventListener("click", excluirPaciente);
+    document.getElementById("btnLimparPesquisa").addEventListener("click", limparPesquisa);
+
+    // Verifica a autenticação do usuário ao carregar a página
+    verificarAutenticacao();
+
+function mostrarPopup(message, type = 'info', withButtons = false, okCallback = null, cancelCallback = null) {
+    const popupContainer = document.getElementById('toast-container');
+    if (!popupContainer) return;
+
+    const popup = document.createElement('div');
+
+    // Ajusta as classes para casar com o CSS .toast .confirmation ou .selection
+    let tipoClasse = '';
+    if (type === 'info' || type === 'success' || type === 'error' || type === 'confirmation') {
+        tipoClasse = 'confirmation'; // popup padrão com confirmação
+    } else if (type === 'selection' || type === 'selecao') {
+        tipoClasse = 'selection';
+    } else {
+        tipoClasse = 'confirmation'; // fallback
+    }
+
+    popup.className = 'toast ' + tipoClasse;
+
+    popup.innerHTML = `<p>${message}</p>`;
+
+    if (withButtons) {
+        const buttonsDiv = document.createElement('div');
+        buttonsDiv.className = 'toast-buttons';
+
+        const okBtn = document.createElement('button');
+        okBtn.textContent = 'OK';
+        okBtn.className = 'ok-btn';
+        okBtn.onclick = () => {
+            popup.remove();
+            if (okCallback) okCallback();
+        };
+
+        const cancelBtn = document.createElement('button');
+        cancelBtn.textContent = 'Cancelar';
+        cancelBtn.className = 'cancel-btn';
+        cancelBtn.onclick = () => {
+            popup.remove();
+            if (cancelCallback) cancelCallback();
+        };
+
+        buttonsDiv.appendChild(okBtn);
+        buttonsDiv.appendChild(cancelBtn);
+        popup.appendChild(buttonsDiv);
+    }
+
+    popupContainer.appendChild(popup);
+
+    if (!withButtons) {
+        setTimeout(() => {
+            if (popup.parentElement) popup.remove();
+        }, 4000);
+    }
+}
+
+function popupSelecao(message, options) {
+    return new Promise((resolve) => {
+        const popupContainer = document.getElementById('toast-container');
+        if (!popupContainer) return resolve(-1);
+
+        const popup = document.createElement('div');
+        popup.className = 'toast selection';
+        popup.style.maxWidth = '400px';
+        popup.style.maxHeight = '300px';
+        popup.style.overflowY = 'auto';
+        popup.style.whiteSpace = 'normal';
+
+        const msgP = document.createElement('p');
+        msgP.textContent = message;
+        popup.appendChild(msgP);
+
+        const optionsDiv = document.createElement('div');
+        optionsDiv.className = 'toast-buttons';
+        optionsDiv.style.flexDirection = 'column';
+
+        options.forEach((opt, i) => {
+            const btn = document.createElement('button');
+            btn.textContent = `${i + 1}: ${opt}`;
+            btn.style.cursor = 'pointer';
+            btn.onclick = () => {
+                popup.remove();
+                resolve(i);
+            };
+            optionsDiv.appendChild(btn);
+        });
+
+        const cancelBtn = document.createElement('button');
+        cancelBtn.textContent = 'Cancelar';
+        cancelBtn.className = 'cancel-btn';
+        cancelBtn.style.marginTop = '10px';
+        cancelBtn.onclick = () => {
+            popup.remove();
+            resolve(-1);
+        };
+        optionsDiv.appendChild(cancelBtn);
+
+        popup.appendChild(optionsDiv);
+        popupContainer.appendChild(popup);
+    });
+}
+</script>
+</body>
+</html>
