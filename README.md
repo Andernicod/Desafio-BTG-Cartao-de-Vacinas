@@ -2,8 +2,6 @@
 
 Este é um projeto que desenvolvi para o desafio BTG incluindo o Frontend (HTML, CSS, JavaScript) e Backend (No qual foi desenvolvido na linguagem Java utilizando SpringBoot, JWT e Banco de Dados Postgree)
 
-[![Video de Apresentação](https://img.youtube.com/vi/frwpT8oDAq4/0.jpg)](https://youtu.be/frwpT8oDAq4)
-
 ## O Sistema:
 O sistema permite o gerenciar carteiras de vacinação, com as seguintes funções:
 
